@@ -98,6 +98,10 @@ const login = async (req, res) => {
     return res.status(404).json({
       message: "User is not found",
     });
+  if (existUser.isDelete)
+    return res.status(403).json({
+      message: "User account has been deleted",
+    });
   const isValidPassword = await bcrypt.comparePassword(
     req.body.password,
     existUser.password
@@ -156,6 +160,7 @@ const getUserByTopic = async (req, res) => {
   const users = await User.find({
     _id: { $nin: [...userIds, ...requestUserIds, ...requestSenderIDs, myId] },
     userTopicSkill: { $in: topicIdList },
+    isDelete: false,
   })
     .select("-password")
     .populate("userTopicSkill")
@@ -176,18 +181,17 @@ const deleteUser = async (req, res) => {
     return res.status(400).json({
       message: "Invalid id",
     });
+  
+  // Revoke all tokens for this user
   await tokenController.deleteTokenByUserID(id);
-  await Message.deleteMany({
-    senderID: id,
-  });
-  await Chat.deleteMany({
-    members: { $in: [id] },
-  });
-  await User.findByIdAndDelete(id).catch((err) => {
+  
+  // Soft delete: set isDelete to true instead of actually deleting
+  await User.findByIdAndUpdate(id, { isDelete: true }).catch((err) => {
     return res.status(400).json({
       message: "Something went wrong",
     });
   });
+  
   return res.json({
     message: "Deleted successfully",
   });
@@ -200,6 +204,15 @@ const updateUser = async (req, res) => {
   if (!isValidId)
     return res.status(400).json({
       message: "Invalid id",
+    });
+  const user = await User.findById(id);
+  if (!user)
+    return res.status(404).json({
+      message: "User is not found",
+    });
+  if (user.isDelete)
+    return res.status(403).json({
+      message: "User account has been deleted",
     });
   if (req.body.password != null)
     return res.status(400).json({
@@ -241,6 +254,10 @@ const changePassword = async (req, res) => {
     return res.status(404).json({
       message: "User is not found",
     });
+  if (existUser.isDelete)
+    return res.status(403).json({
+      message: "User account has been deleted",
+    });
   const password = req.body.password;
   const hashPassword = await bcrypt.hashPassword(password);
   await User.findOneAndUpdate(
@@ -272,6 +289,10 @@ const getUserByEmail = async (req, res) => {
     return res.status(404).json({
       message: "User is not found",
     });
+  if (existUser.isDelete)
+    return res.status(403).json({
+      message: "User account has been deleted",
+    });
   return res.json({
     data: existUser,
   });
@@ -295,6 +316,7 @@ const getAllUser = async (req, res) => {
   }).distinct("senderID");
   const users = await User.find({
     _id: { $nin: [...userIds, ...requestUserIds, ...requestSenderIDs, myId] },
+    isDelete: false,
   })
     .select("-password")
     .populate("userTopicSkill")
@@ -318,6 +340,10 @@ const getUserById = async (req, res) => {
   if (!existUser)
     return res.status(404).json({
       message: "User is not found",
+    });
+  if (existUser.isDelete)
+    return res.status(403).json({
+      message: "User account has been deleted",
     });
   return res.status(200).json({
     data: existUser,

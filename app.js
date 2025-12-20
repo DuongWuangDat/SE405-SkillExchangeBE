@@ -12,6 +12,7 @@ const messageRoute = require('./route/message_route.js')
 const requestRoute = require("./route/request_route.js")
 const uploadRoute = require("./route/upload_route.js")
 const serviceRoute = require("./route/service_route.js")
+const reportRoute = require("./route/report_route.js")
 const http = require("http").createServer(app)
 
 require("dotenv").config()
@@ -54,6 +55,7 @@ app.use(`${api}/message`, messageRoute)
 app.use(`${api}/request`,requestRoute)
 app.use(`${api}/upload`, uploadRoute)
 app.use(`${api}/service`, serviceRoute)
+app.use(`${api}/report`, reportRoute)
 ///--------------------Socket------------------///
 const {Server} = require("socket.io")
 const io = new Server(http, {
