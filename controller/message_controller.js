@@ -101,7 +101,7 @@ const deleteMessage = async(req,res)=>{
     try{
         const messageID = req.params.id
         const senderID = req.body.senderID
-        console.log(messageID, senderID)
+        
         const isValidMessageID = await Helper.isValidObjectID(messageID)
         const isValidSenderID = await Helper.isValidObjectID(senderID)
         
