@@ -20,6 +20,10 @@ const sendMessage = async(req,res)=>{
         if(!user) return res.status(404).json({
             message: "User not found"
         })
+        // Kiểm tra xem user có bị deleted không
+        if(user.isDelete) return res.status(403).json({
+            message: "Deleted user cannot send message"
+        })
         
         const chat = await Chat.findById(req.body.chatID)
         if(!chat) return res.status(404).json({
