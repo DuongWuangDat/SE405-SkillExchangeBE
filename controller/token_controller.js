@@ -19,6 +19,11 @@ const checkTokenIsRevoked = async (token) =>{
     const isExpired = await checkTokenIsExpired(token)
     if(isExpired) return true
     const jwt = await auth.verifyToken(token)
+    
+    // Check if user still exists or is deleted
+    const user = await User.findById(jwt.userId)
+    if(!user || user.isDelete) return true
+    
     const type = jwt.type
     if(type == 'access'){
         return false
