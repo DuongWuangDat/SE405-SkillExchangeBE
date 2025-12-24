@@ -99,6 +99,7 @@ io.on("connection", (socket)=>{
         const user = onlineUsers.find((userFind) => userFind.userID == recipientID)
         
         if(user){
+            console.log("Recipient id:" + user.userID)
             io.to(user.socketID).emit("recieveDeletedMsg", {
                 chatID: chatID,
                 messageID: messageID
