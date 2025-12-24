@@ -97,9 +97,9 @@ io.on("connection", (socket)=>{
         const { chatID, recipientID, messageID } = req
         
         const user = onlineUsers.find((userFind) => userFind.userID == recipientID)
-        
+
         if(user){
-            console.log("Recipient id:" + user.userID)
+            console.log("Recipient id:" + user.userID + user.socketID)
             io.to(user.socketID).emit("recieveDeletedMsg", {
                 chatID: chatID,
                 messageID: messageID
