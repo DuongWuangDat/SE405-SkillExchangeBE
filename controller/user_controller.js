@@ -8,6 +8,7 @@ const helper = require("../pkg/helper/helper.js");
 const Message = require("../model/message.js");
 const Request = require("../model/request.js");
 const Chat = require("../model/chat.js");
+const { sendAccountActionEmail } = require("../pkg/helper/emailService.js");
 const register = async (req, res) => {
   const isValidEmail = await helper.isValidEmail(req.body.email);
   const isValidPhoneNumber = await helper.isValidPhoneNumber(
@@ -98,10 +99,28 @@ const login = async (req, res) => {
     return res.status(404).json({
       message: "User is not found",
     });
+
+  // Check if account is deleted
   if (existUser.isDelete)
     return res.status(403).json({
-      message: "User account has been deleted",
+      message:
+        "Your account has been deleted. Please contact support at skillexchange0104@gmail.com to restore your account.",
+      accountStatus: "deleted",
+      supportEmail: "skillexchange0104@gmail.com",
     });
+
+  // Check if account is banned
+  if (existUser.isBanned)
+    return res.status(403).json({
+      message: `Your account has been suspended${
+        existUser.banReason ? `: ${existUser.banReason}` : ""
+      }. Please contact support at skillexchange0104@gmail.com for assistance.`,
+      accountStatus: "banned",
+      banReason: existUser.banReason,
+      bannedAt: existUser.bannedAt,
+      supportEmail: "skillexchange0104@gmail.com",
+    });
+
   const isValidPassword = await bcrypt.comparePassword(
     req.body.password,
     existUser.password
@@ -161,6 +180,7 @@ const getUserByTopic = async (req, res) => {
     _id: { $nin: [...userIds, ...requestUserIds, ...requestSenderIDs, myId] },
     userTopicSkill: { $in: topicIdList },
     isDelete: false,
+    isBanned: false,
   })
     .select("-password")
     .populate("userTopicSkill")
@@ -174,6 +194,58 @@ const getUserByTopic = async (req, res) => {
   });
 };
 
+const banUser = async (req, res) => {
+  const id = req.params.id;
+  const { banReason } = req.body;
+
+  const isValidId = await helper.isValidObjectID(id);
+  if (!isValidId)
+    return res.status(400).json({
+      message: "Invalid id",
+    });
+
+  // Get user info before banning for email notification
+  const user = await User.findById(id);
+  if (!user) {
+    return res.status(404).json({
+      message: "User not found",
+    });
+  }
+
+  if (user.isDelete) {
+    return res.status(400).json({
+      message: "User is already deleted",
+    });
+  }
+
+  if (user.isBanned) {
+    return res.status(400).json({
+      message: "User is already banned",
+    });
+  }
+
+  // Revoke all tokens for this user
+  await tokenController.deleteTokenByUserID(id);
+
+  // Ban user: set isBanned to true and store ban reason
+  await User.findByIdAndUpdate(id, {
+    isBanned: true,
+    banReason: banReason,
+    bannedAt: new Date(),
+  }).catch((err) => {
+    return res.status(400).json({
+      message: "Something went wrong",
+    });
+  });
+
+  // Send account ban email notification (async, non-blocking)
+  sendAccountActionEmail(user.email, user.username, "banned", banReason);
+
+  return res.json({
+    message: "User banned successfully",
+  });
+};
+
 const deleteUser = async (req, res) => {
   const id = req.params.id;
   const isValidId = await helper.isValidObjectID(id);
@@ -181,17 +253,28 @@ const deleteUser = async (req, res) => {
     return res.status(400).json({
       message: "Invalid id",
     });
-  
+
+  // Get user info before deleting for email notification
+  const user = await User.findById(id);
+  if (!user) {
+    return res.status(404).json({
+      message: "User not found",
+    });
+  }
+
   // Revoke all tokens for this user
   await tokenController.deleteTokenByUserID(id);
-  
+
   // Soft delete: set isDelete to true instead of actually deleting
   await User.findByIdAndUpdate(id, { isDelete: true }).catch((err) => {
     return res.status(400).json({
       message: "Something went wrong",
     });
   });
-  
+
+  // Send account deletion email notification (async, non-blocking)
+  sendAccountActionEmail(user.email, user.username, "deleted");
+
   return res.json({
     message: "Deleted successfully",
   });
@@ -293,6 +376,10 @@ const getUserByEmail = async (req, res) => {
     return res.status(403).json({
       message: "User account has been deleted",
     });
+  if (existUser.isBanned)
+    return res.status(403).json({
+      message: "User account has been banned",
+    });
   return res.json({
     data: existUser,
   });
@@ -317,6 +404,7 @@ const getAllUser = async (req, res) => {
   const users = await User.find({
     _id: { $nin: [...userIds, ...requestUserIds, ...requestSenderIDs, myId] },
     isDelete: false,
+    isBanned: false,
   })
     .select("-password")
     .populate("userTopicSkill")
@@ -344,6 +432,10 @@ const getUserById = async (req, res) => {
   if (existUser.isDelete)
     return res.status(403).json({
       message: "User account has been deleted",
+    });
+  if (existUser.isBanned)
+    return res.status(403).json({
+      message: "User account has been banned",
     });
   return res.status(200).json({
     data: existUser,
@@ -379,6 +471,7 @@ module.exports = {
   getUserByTopic,
   changePassword,
   deleteUser,
+  banUser,
   updateUser,
   getAllUser,
   logOut,

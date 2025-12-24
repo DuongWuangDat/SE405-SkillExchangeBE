@@ -1,66 +1,85 @@
-const mongoose = require("mongoose")
-const Schema = mongoose.Schema
+const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
 const userSchema = new Schema({
-    username: {
-        type: String,
-        required: true
+  username: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+  },
+  phoneNumber: {
+    type: String,
+    required: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  avatar: {
+    type: String,
+  },
+  imageCerti: [
+    {
+      type: String,
     },
-    email:{
-        type: String,
-        required: true
+  ],
+  description: [
+    {
+      type: String,
     },
-    phoneNumber:{
-        type: String,
-        required: true
+  ],
+  userTopicSkill: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Topic",
     },
-    password:{
-        type: String,
-        required: true
+  ],
+  learnTopicSkill: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Topic",
     },
-    avatar:{
-        type: String
+  ],
+  skill: [
+    {
+      type: String,
     },
-    imageCerti: [{
-        type: String
-    }],
-    description:[{
-        type: String
-    }],
-    userTopicSkill: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Topic'
-    }],
-    learnTopicSkill: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Topic'
-    }],
-    skill: [{
-        type: String,
-    }],
-    birthDay: {
-        type: Date
-    },
-    rankElo:{
-        type: Number,
-        default: 0
-    },
-    isDelete:{
-        type: Boolean,
-        default: false
-    },
-    isAdmin:{
-        type: Boolean,
-        default: false
-    }
-    
-})
+  ],
+  birthDay: {
+    type: Date,
+  },
+  rankElo: {
+    type: Number,
+    default: 0,
+  },
+  isDelete: {
+    type: Boolean,
+    default: false,
+  },
+  isBanned: {
+    type: Boolean,
+    default: false,
+  },
+  banReason: {
+    type: String,
+  },
+  bannedAt: {
+    type: Date,
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false,
+  },
+});
 
-userSchema.virtual("id").get(function(){
-    return this._id.toHexString
-})
+userSchema.virtual("id").get(function () {
+  return this._id.toHexString;
+});
 
-userSchema.set('toJSON',{
-    "virtuals": true
-})
-const userModel = mongoose.model("User", userSchema)
-module.exports = userModel
+userSchema.set("toJSON", {
+  virtuals: true,
+});
+const userModel = mongoose.model("User", userSchema);
+module.exports = userModel;
