@@ -20,10 +20,14 @@ const getChatByUId = async (req,res)=>{
     }
     const chat = await chatModel.find({
         members: {$in: [firstID]}
-    }).populate('members', 'username avatar')
+    }).populate('members', 'username avatar isDelete')
     
     const dataChatList = []
     await Promise.all(chat.map( async (room)=>{
+        // Kiểm tra xem có member nào bị xóa không
+        const hasDeletedMember = room.members.some(member => member.isDelete === true)
+        if(hasDeletedMember) return // Bỏ qua chat này nếu có user bị xóa
+        
         const latestMessage = await Message.find({
             chatID: room._id
         }).sort({
@@ -57,9 +61,13 @@ const getChatBy2UID = async (req,res)=>{
     try{
         const chat = await chatModel.find({
             members: {$all: [firstID,secondID]}
-        }).populate("members", 'username avatar')
+        }).populate("members", 'username avatar isDelete')
         const dataChatList = []
         await Promise.all(chat.map( async (room)=>{
+            // Kiểm tra xem có member nào bị xóa không
+            const hasDeletedMember = room.members.some(member => member.isDelete === true)
+            if(hasDeletedMember) return // Bỏ qua chat này nếu có user bị xóa
+            
             const latestMessage = await Message.find({
                 chatID: room._id
             }).sort({
@@ -97,6 +105,10 @@ const createNewChat = async (req,res)=>{
     const user2 = await User.findById(secondID)
     if(!user1 || !user2) return res.status(404).json({
         message: "User not found"
+    })
+    // Kiểm tra xem có user nào bị xóa không
+    if(user1.isDelete || user2.isDelete) return res.status(400).json({
+        message: "Cannot create chat with deleted user"
     })
     try{
         const existChat = await chatModel.findOne({

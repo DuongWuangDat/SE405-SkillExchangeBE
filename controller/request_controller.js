@@ -14,6 +14,10 @@ const createNewRequest = async (req,res)=>{
     if(!user1 || !user2) return res.status(404).json({
         message: "User not found"
     })
+    // Kiểm tra xem có user nào bị deleted không
+    if(user1.isDelete || user2.isDelete) return res.status(400).json({
+        message: "Cannot send request to deleted user"
+    })
     const existRequest = await Request.findOne({
         senderID : senderID,
         receiverID: receiverID
@@ -59,14 +63,17 @@ const getRequestBySenderId = async (req,res) =>{
     })
     const request = await Request.find({
         senderID: senderID
-    }).populate('receiverID', 'username avatar').catch((err)=>{
+    }).populate('receiverID', 'username avatar isDelete').catch((err)=>{
         return res.status(400).json({
             message: "Something went wrong"
         })
     })
 
+    // Lọc các request có receiver bị deleted
+    const filteredRequests = request.filter(req => !req.receiverID?.isDelete)
+
     return res.json({
-        data: request
+        data: filteredRequests
     })
 }
 
@@ -79,14 +86,17 @@ const getRequestByRecieverId = async (req,res) =>{
     })
     const request = await Request.find({
         receiverID: receiverID
-    }).populate('senderID', 'username avatar').catch((err)=>{
+    }).populate('senderID', 'username avatar isDelete').catch((err)=>{
         return res.status(400).json({
             message: "Something went wrong"
         })
     })
 
+    // Lọc các request có sender bị deleted
+    const filteredRequests = request.filter(req => !req.senderID?.isDelete)
+
     return res.json({
-        data: request
+        data: filteredRequests
     })
 }
 

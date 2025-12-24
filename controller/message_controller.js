@@ -20,6 +20,10 @@ const sendMessage = async(req,res)=>{
         if(!user) return res.status(404).json({
             message: "User not found"
         })
+        // Kiểm tra xem user có bị deleted không
+        if(user.isDelete) return res.status(403).json({
+            message: "Deleted user cannot send message"
+        })
         
         const chat = await Chat.findById(req.body.chatID)
         if(!chat) return res.status(404).json({
@@ -99,15 +103,20 @@ const getMessageByBoth =async(req,res)=>{
 // delete message by id (only sender can delete)
 const deleteMessage = async(req,res)=>{
     try{
-        const messageID = req.params.messageID
+        const messageID = req.params.id
         const senderID = req.body.senderID
         
         const isValidMessageID = await Helper.isValidObjectID(messageID)
         const isValidSenderID = await Helper.isValidObjectID(senderID)
         
-        if(!isValidMessageID || !isValidSenderID) return res.status(400).json({
-            message: "Invalid id"
+        if(!isValidSenderID) return res.status(400).json({
+            message: "Invalid sender id"
         })
+
+        if(!isValidMessageID) return res.status(400).json({
+            message: "Invalid message id"
+        })
+
         
         const message = await Message.findById(messageID)
         if(!message) return res.status(404).json({
