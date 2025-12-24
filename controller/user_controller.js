@@ -132,15 +132,17 @@ const getUserByTopic = async (req, res) => {
   const topicList = topics.split(",");
   const topicIdList = await Promise.all(
     topicList.map(async (topicname) => {
-      const topic = await Topic.findOne({
-        name: topicname,
+      const topics = await Topic.find({
+        name: { $regex: topicname, $options: 'i' }
       });
-      console.log(topic);
-      if (topic != null) {
-        return topic._id;
+      console.log(topics);
+      if (topics && topics.length > 0) {
+        return topics.map(t => t._id);
       }
+      return [];
     })
   );
+  const flattenedTopicIds = topicIdList.flat();
 
   const chatroomUserIds = await Chat.find({
     members: { $in: [myId] },
@@ -159,7 +161,7 @@ const getUserByTopic = async (req, res) => {
   }).distinct("senderID");
   const users = await User.find({
     _id: { $nin: [...userIds, ...requestUserIds, ...requestSenderIDs, myId] },
-    userTopicSkill: { $in: topicIdList },
+    userTopicSkill: { $in: flattenedTopicIds },
     isDelete: false,
   })
     .select("-password")
