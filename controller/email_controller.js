@@ -22,6 +22,7 @@ const sendEmail =async (req,res)=>{
             userCode: code
         })
     }catch(e){
+        console.error(e);
         res.status(400).json({
             message: "Something went wrong"
         })
