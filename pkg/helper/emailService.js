@@ -7,12 +7,18 @@ const sendEmailService = async (email, code) => {
   console.log(process.env.EMAIL, process.env.EMAIL_PASSWORD)
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 587,
-    secure: false, // Use `true` for port 465, `false` for all other ports
+    port: 465,
+    secure: true, // Use `true` for port 465, `false` for all other ports
     auth: {
       user: process.env.EMAIL,
       pass: process.env.EMAIL_PASSWORD,
     },
+    tls: {
+      rejectUnauthorized: false
+    },
+    connectionTimeout: 30000, // 30 seconds
+    greetingTimeout: 30000,
+    socketTimeout: 30000,
   });
 
   // Đọc template HTML
@@ -45,12 +51,18 @@ const sendAccountActionEmail = (
     try {
       const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
-        port: 587,
-        secure: false,
+        port: 465,
+        secure: true,
         auth: {
           user: process.env.EMAIL,
           pass: process.env.EMAIL_PASSWORD,
         },
+        tls: {
+          rejectUnauthorized: false
+        },
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 30000,
       });
 
       // Read template HTML
