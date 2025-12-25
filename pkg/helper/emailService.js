@@ -4,6 +4,7 @@ const path = require("path");
 require("dotenv").config();
 
 const sendEmailService = async (email, code) => {
+  console.log(process.env.EMAIL, process.env.EMAIL_PASSWORD)
   const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
